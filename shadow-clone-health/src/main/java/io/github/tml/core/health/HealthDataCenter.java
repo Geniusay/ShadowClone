@@ -1,18 +1,23 @@
 package io.github.tml.core.health;
 
-import io.github.tml.core.health.aggregator.ScheduleAsyncHealthAggregator;
-import org.springframework.context.annotation.DependsOn;
+import io.github.tml.config.HealthDataCenterConfig;
+import io.github.tml.constant.ShadowCloneConstant;
+import io.github.tml.core.health.aggregator.Aggregator;
+import io.github.tml.core.health.aggregator.CommonHealthAggregator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
-import static io.github.tml.constant.HealthConstant.HEALTH_DATA_COLLECTOR;
 
+@Slf4j
 @Component
-@DependsOn(HEALTH_DATA_COLLECTOR)
 public class HealthDataCenter {
+
+    @Resource
+    HealthDataCenterConfig config;
 
     private final HealthInfo healthInfo;
 
@@ -20,10 +25,13 @@ public class HealthDataCenter {
 
     private static ReentrantLock lock = new ReentrantLock();
 
-    private long updateHealthFrequencyMills = 5000;
+    private long updateHealthFrequencyMills;
+
+    @Resource(name = "${"+ ShadowCloneConstant.CONFIG_PREFIX +".health-data.aggregator:scheduleAsyncHealthAggregator}")
+    Aggregator aggregator;
 
     @Resource
-    ScheduleAsyncHealthAggregator aggregator;
+    CommonHealthAggregator commonHealthAggregator;
 
     public static HealthDataCenter getInstance(){
         if(instance==null){
@@ -41,25 +49,28 @@ public class HealthDataCenter {
     }
 
     @PostConstruct
-    public void start(){
+    private void initEnv(){
+        getInstance();
+        instance.updateHealthFrequencyMills = config.getUpdateHealthFrequencyMills();
+        log.info("start first health data aggregate");
+        commonHealthAggregator.aggregate();
+        log.info("first health data aggregate end");
         aggregator.aggregate();
     }
-    public HealthDataCenter(){
+
+    private HealthDataCenter(){
         if(instance!=null){
             throw new RuntimeException("HealthInfoMonitor has been init");
         }
-        healthInfo = new HealthInfo();
+        this.healthInfo = new HealthInfo();
     }
 
-    public <T>  boolean update(String key,T value){
-        return healthInfo.putInfo(key,value);
-    }
-
-    public <T>  boolean update(Map<String,T> map){
+    public <T>  boolean update(String name,Map<String,T> map){
+        log.info("{} health data update",name);
         return healthInfo.putInfo(map);
     }
 
     public long getUpdateHealthFrequencyMills() {
-        return updateHealthFrequencyMills;
+        return this.updateHealthFrequencyMills;
     }
 }

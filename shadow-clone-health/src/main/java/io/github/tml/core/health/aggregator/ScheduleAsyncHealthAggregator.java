@@ -1,26 +1,23 @@
 package io.github.tml.core.health.aggregator;
 
+import io.github.tml.config.ScheduleAsyncHealthAggregatorThreadPoolConfig;
 import io.github.tml.core.health.AbstractHealthDataSource;
 import io.github.tml.core.health.HealthDataCenter;
-import io.github.tml.core.health.HealthDataCollector;
+import io.github.tml.core.thread.CommonThreadPool;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.DependsOn;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static io.github.tml.constant.HealthConstant.HEALTH_DATA_COLLECTOR;
 
 @Slf4j
 @Component
-@DependsOn(HEALTH_DATA_COLLECTOR)
-public class ScheduleAsyncHealthAggregator implements Aggregator {
+public class ScheduleAsyncHealthAggregator extends AbstractAggregator {
 
-    private final ThreadPoolExecutor executor;
+    private ThreadPoolExecutor executor;
 
-    private final Map<String, AbstractHealthDataSource<?>> dataSourceMap;
 
     private final Map<String, Future<Boolean>> runningAggregators;
 
@@ -28,21 +25,15 @@ public class ScheduleAsyncHealthAggregator implements Aggregator {
 
     private final ReentrantLock lock;
 
-    public ScheduleAsyncHealthAggregator() {
-        this.dataSourceMap = HealthDataCollector.DataSourceMap();
+    @Autowired
+    public ScheduleAsyncHealthAggregator(ScheduleAsyncHealthAggregatorThreadPoolConfig config) {
         this.runningAggregators = new ConcurrentHashMap<>();
         this.aggregators = new ConcurrentHashMap<>();
         this.lock = new ReentrantLock();
-        int dataSourceNum = dataSourceMap.size();
-        executor = new ThreadPoolExecutor(
-                dataSourceNum
-                , dataSourceNum*2
-                , 0L
-                , TimeUnit.SECONDS
-                , new SynchronousQueue<Runnable>()
-        );
+        this.executor = CommonThreadPool.buildThreadPoolExecutor(config);
     }
 
+    @Override
     public void aggregate() {
         this.dataSourceMap.forEach(
                 (name, dataSource) -> {
@@ -101,7 +92,7 @@ public class ScheduleAsyncHealthAggregator implements Aggregator {
                 try {
                     startTime = System.currentTimeMillis();
                     Map<String, ?> healthData = healthDataSource.getHealthData();
-                    instance.update(healthData);
+                    instance.update(healthDataName,healthData);
                     sleepTime = updateHealthFrequencyMills - (System.currentTimeMillis() - startTime);
                     if (sleepTime > 0) {
                         Thread.sleep(sleepTime);

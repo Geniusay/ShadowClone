@@ -1,10 +1,7 @@
 package io.github.tml.core.health;
 
 import io.github.tml.core.FinalWrapper;
-import io.github.tml.core.health.AbstractHealthDataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +19,7 @@ public class HealthDataCollector{
     /**
      * 不可变，初始化后不可放置的数据源Map
      */
-    private static FinalWrapper<Map<String, AbstractHealthDataSource<?>>> dataSourceMap;
+    private FinalWrapper<Map<String, AbstractHealthDataSource<?>>> dataSourceMap;
 
     @PostConstruct
     private void init(){
@@ -37,7 +34,7 @@ public class HealthDataCollector{
         dataSourceMap = new FinalWrapper<>(Collections.unmodifiableMap(temp));
     }
 
-    public static Map<String, AbstractHealthDataSource<?>> DataSourceMap(){
+    public Map<String, AbstractHealthDataSource<?>> DataSourceMap(){
         return dataSourceMap.getValue();
     }
 }

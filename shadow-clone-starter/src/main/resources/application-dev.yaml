@@ -1,0 +1,9 @@
+shadow-clone:
+#  规划异步收集者线程池配置
+#  schedule-aggregator:
+#      thread-pool:
+#        core-threads:  10
+#        max-threads: 100
+#  健康数据中心 收集者配置
+#  health-data:
+#    aggregator: lazyAsyncHealthAggregator
