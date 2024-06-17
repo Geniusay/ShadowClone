@@ -14,9 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Component
-public class ScheduleAsyncHealthAggregator extends AbstractAggregator {
-
-    private ThreadPoolExecutor executor;
+public class ScheduleAsyncHealthAggregator extends AsyncAggregator<ScheduleAsyncHealthAggregatorThreadPoolConfig> {
 
 
     private final Map<String, Future<Boolean>> runningAggregators;
@@ -27,6 +25,7 @@ public class ScheduleAsyncHealthAggregator extends AbstractAggregator {
 
     @Autowired
     public ScheduleAsyncHealthAggregator(ScheduleAsyncHealthAggregatorThreadPoolConfig config) {
+        super(config);
         this.runningAggregators = new ConcurrentHashMap<>();
         this.aggregators = new ConcurrentHashMap<>();
         this.lock = new ReentrantLock();

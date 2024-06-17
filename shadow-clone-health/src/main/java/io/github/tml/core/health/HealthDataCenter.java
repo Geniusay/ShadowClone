@@ -2,8 +2,9 @@ package io.github.tml.core.health;
 
 import io.github.tml.config.HealthDataCenterConfig;
 import io.github.tml.constant.ShadowCloneConstant;
-import io.github.tml.core.health.aggregator.Aggregator;
+import io.github.tml.core.health.aggregator.AsyncAggregator;
 import io.github.tml.core.health.aggregator.CommonHealthAggregator;
+import io.github.tml.core.monitor.HealthInfoMonitor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -16,22 +17,24 @@ import java.util.concurrent.locks.ReentrantLock;
 @Component
 public class HealthDataCenter {
 
-    @Resource
-    HealthDataCenterConfig config;
+    private static volatile HealthDataCenter instance;
+
+    private static final ReentrantLock lock = new ReentrantLock();
 
     private final HealthInfo healthInfo;
 
-    private static volatile HealthDataCenter instance;
-
-    private static ReentrantLock lock = new ReentrantLock();
-
-    private long updateHealthFrequencyMills;
-
-    @Resource(name = "${"+ ShadowCloneConstant.CONFIG_PREFIX +".health-data.aggregator:scheduleAsyncHealthAggregator}")
-    Aggregator aggregator;
+    @Resource
+    private HealthDataCenterConfig config;
 
     @Resource
-    CommonHealthAggregator commonHealthAggregator;
+    private HealthInfoMonitor monitor;
+
+    @Resource(name = "${"+ ShadowCloneConstant.CONFIG_PREFIX +".health-data.aggregator:scheduleAsyncHealthAggregator}")
+    private AsyncAggregator<?> aggregator;
+
+    @Resource
+    private CommonHealthAggregator commonHealthAggregator;
+
 
     public static HealthDataCenter getInstance(){
         if(instance==null){
@@ -51,11 +54,16 @@ public class HealthDataCenter {
     @PostConstruct
     private void initEnv(){
         getInstance();
-        instance.updateHealthFrequencyMills = config.getUpdateHealthFrequencyMills();
+        initProtectedEnv();
         log.info("start first health data aggregate");
         commonHealthAggregator.aggregate();
         log.info("first health data aggregate end");
         aggregator.aggregate();
+    }
+
+    private void initProtectedEnv(){
+        instance.config = this.config;
+        instance.monitor = this.monitor;
     }
 
     private HealthDataCenter(){
@@ -66,11 +74,12 @@ public class HealthDataCenter {
     }
 
     public <T>  boolean update(String name,Map<String,T> map){
-        log.info("{} health data update",name);
-        return healthInfo.putInfo(map);
+        boolean res = healthInfo.putInfo(map);
+        monitor.notify(map);
+        return res;
     }
 
     public long getUpdateHealthFrequencyMills() {
-        return this.updateHealthFrequencyMills;
+        return this.config.getUpdateHealthFrequencyMills();
     }
 }

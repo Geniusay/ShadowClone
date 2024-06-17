@@ -17,6 +17,11 @@ public class CommonThreadPool {
     }
 
     public static ScheduledExecutorService buildScheduleThreadPoolExecutor(ThreadPoolConfig config){
+
         return Executors.newScheduledThreadPool(config.getCoreThreads(), config.getThreadFactory());
+    }
+
+    public static ExecutorService singleThreadPoolExecutor (){
+        return Executors.newSingleThreadExecutor();
     }
 }

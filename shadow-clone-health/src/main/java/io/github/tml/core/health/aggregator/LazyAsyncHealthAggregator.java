@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @Component
-public class LazyAsyncHealthAggregator extends AbstractAggregator {
+public class LazyAsyncHealthAggregator extends AsyncAggregator<LazyAsyncHealthAggregatorThreadPoolConfig> {
 
 
     private final ScheduledExecutorService scheduledExecutor;
@@ -24,6 +24,7 @@ public class LazyAsyncHealthAggregator extends AbstractAggregator {
 
     @Autowired
     public LazyAsyncHealthAggregator(LazyAsyncHealthAggregatorThreadPoolConfig config) {
+        super(config);
         this.scheduledExecutor = Executors.newScheduledThreadPool(1);
         this.executor = CommonThreadPool.buildThreadPoolExecutor(config);
         this.updateTimeStampMap = new ConcurrentHashMap<>();
