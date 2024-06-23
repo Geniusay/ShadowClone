@@ -5,17 +5,18 @@ import io.github.tml.constant.ShadowCloneConstant;
 import io.github.tml.core.health.aggregator.AsyncAggregator;
 import io.github.tml.core.health.aggregator.CommonHealthAggregator;
 import io.github.tml.core.monitor.HealthInfoMonitor;
+import io.github.tml.core.starter.ShadowCloneStarter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static io.github.tml.constant.OrderConstant.HEALTH_ORDER;
+
 @Slf4j
 @Component
-public class HealthDataCenter {
+public class HealthDataCenter extends ShadowCloneStarter {
 
     private static volatile HealthDataCenter instance;
 
@@ -51,14 +52,12 @@ public class HealthDataCenter {
         return instance;
     }
 
-    @PostConstruct
     private void initEnv(){
         getInstance();
         initProtectedEnv();
         log.info("start first health data aggregate");
         commonHealthAggregator.aggregate();
         log.info("first health data aggregate end");
-        aggregator.aggregate();
     }
 
     private void initProtectedEnv(){
@@ -81,5 +80,21 @@ public class HealthDataCenter {
 
     public long getUpdateHealthFrequencyMills() {
         return this.config.getUpdateHealthFrequencyMills();
+    }
+
+    @Override
+    public void start() {
+        initEnv();
+    }
+
+    @Override
+    public void afterStart(){
+        log.info("start health data async aggregate");
+        aggregator.aggregate();
+    }
+
+    @Override
+    public int order() {
+        return HEALTH_ORDER+1;
     }
 }

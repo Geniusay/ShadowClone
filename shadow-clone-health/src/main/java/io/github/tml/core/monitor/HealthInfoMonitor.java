@@ -1,5 +1,6 @@
 package io.github.tml.core.monitor;
 
+import io.github.tml.core.starter.ShadowCloneStarter;
 import io.github.tml.core.thread.CommonThreadPool;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -11,8 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static io.github.tml.constant.OrderConstant.HEALTH_ORDER;
+
 @Component
-public class HealthInfoMonitor {
+public class HealthInfoMonitor extends ShadowCloneStarter {
 
     @Resource
     private ApplicationContext applicationContext;
@@ -38,4 +41,8 @@ public class HealthInfoMonitor {
         );
     }
 
+    @Override
+    public int order() {
+        return HEALTH_ORDER+1;
+    }
 }
